@@ -1,12 +1,13 @@
 require('dotenv').config();
 const cron = require('node-cron');
+const express = require('express'); // Import Express
 
 // --- CONFIGURATION ---
 const ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const TWILIO_WHATSAPP_NUMBER = 'whatsapp:+14155238886'; // Sandbox Number
+const TWILIO_WHATSAPP_NUMBER = 'whatsapp:+14155238886'; 
 const MY_NUMBER = 'whatsapp:+919817717588'; 
-const NOTIFY_BEFORE_MINUTES = 5; 
+const NOTIFY_BEFORE_MINUTES = 10; 
 
 // --- SCHEDULE DATA ---
 const timetable = [
@@ -31,13 +32,11 @@ const timetable = [
 
 // --- HELPER: GET IST TIME ---
 function getISTTime() {
-    // Manually adjust UTC to IST (+5.5 hours)
     const now = new Date();
     const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
     return new Date(utc + (3600000 * 5.5));
 }
 
-// --- SEND LOGIC (Native Fetch) ---
 const sendNotification = async (cls) => {
     const message = `🔔 *Class Reminder*\n\n` +
                     `📅 Group: *${cls.group}*\n` +
@@ -62,38 +61,26 @@ const sendNotification = async (cls) => {
             },
             body: body
         });
-
-        if (response.ok) {
-            console.log(`[SUCCESS] Sent to ${cls.group}`);
-        } else {
-            const err = await response.json();
-            console.error(`[ERROR] Twilio API: ${err.message}`);
-        }
+        if (response.ok) console.log(`[SUCCESS] Message sent for ${cls.group}`);
+        else console.error(`[ERROR] Twilio: ${(await response.json()).message}`);
     } catch (error) {
         console.error('[ERROR] Network error:', error.message);
     }
 };
 
-// --- CRON JOB ---
 cron.schedule('* * * * *', () => {
     const now = getISTTime();
-    const day = now.getDay(); 
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const currentTimeStr = `${hours}:${minutes}`;
+    const day = now.getDay();
+    // Only run Mon(1) to Fri(5)
+    if (day === 0 || day === 6) return; 
 
-    console.log(`Checking: ${currentTimeStr} (Day: ${day})`);
+    console.log(`Checking schedule: ${now.toLocaleTimeString()} (Day: ${day})`);
 
     timetable.forEach(cls => {
         if (cls.day === day) {
-            // Convert class time string to Minutes from midnight
             const [cHour, cMin] = cls.time.split(':').map(Number);
             const classTotalMins = (cHour * 60) + cMin;
-            
-            // Convert current time to Minutes from midnight
             const currentTotalMins = (now.getHours() * 60) + now.getMinutes();
-
-            // Check difference
             const diff = classTotalMins - currentTotalMins;
 
             if (diff === NOTIFY_BEFORE_MINUTES) {
@@ -103,4 +90,14 @@ cron.schedule('* * * * *', () => {
     });
 });
 
-console.log('🚀 Native-Fetch Bot Started...');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+    res.send('Class Notifier Bot is Active!');
+});
+
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});

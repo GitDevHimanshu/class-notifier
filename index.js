@@ -7,7 +7,7 @@ const ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const TWILIO_WHATSAPP_NUMBER = 'whatsapp:+14155238886'; 
 const MY_NUMBER = 'whatsapp:+919817717588'; 
-const NOTIFY_BEFORE_MINUTES = 10; 
+const NOTIFY_BEFORE_MINUTES = 5; 
 
 // --- SCHEDULE DATA ---
 const timetable = [
@@ -30,7 +30,6 @@ const timetable = [
     { day: 5, time: '14:30', group: 'BE-CSE-5F', room: 'CVR309R' }
 ];
 
-// --- HELPER: GET IST TIME ---
 function getISTTime() {
     const now = new Date();
     const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
